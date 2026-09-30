@@ -1,0 +1,55 @@
+CHIP ALU {
+    IN
+        x[16],
+        y[16],
+        zx,
+        nx,
+        zy,
+        ny,
+        f,
+        no;
+
+    OUT
+        out[16],
+        zr,
+        ng;
+
+    PARTS:
+
+    // Step 1: If zx = 1, set x to 0
+    Mux16(a=x, b=false, sel=zx, out=xZero);
+
+    // Step 2: If nx = 1, negate x
+    Not16(in=xZero, out=notX);
+    Mux16(a=xZero, b=notX, sel=nx, out=xFinal);
+
+    // Step 3: If zy = 1, set y to 0
+    Mux16(a=y, b=false, sel=zy, out=yZero);
+
+    // Step 4: If ny = 1, negate y
+    Not16(in=yZero, out=notY);
+    Mux16(a=yZero, b=notY, sel=ny, out=yFinal);
+
+    // Step 5: Calculate x AND y
+    And16(a=xFinal, b=yFinal, out=andResult);
+
+    // Step 6: Calculate x + y
+    Add16(a=xFinal, b=yFinal, out=addResult);
+
+    // Step 7: f = 0 -> AND
+    //         f = 1 -> ADD
+    Mux16(a=andResult, b=addResult, sel=f, out=result);
+
+    // Step 8: If no = 1, negate result
+    Not16(in=result, out=notResult);
+    Mux16(a=result, b=notResult, sel=no, out=out);
+
+    // Step 9: zr = 1 if output is zero
+    Or8Way(in=out[0..7], out=lowOr);
+    Or8Way(in=out[8..15], out=highOr);
+    Or(a=lowOr, b=highOr, out=anyBit);
+    Not(in=anyBit, out=zr);
+
+    // Step 10: ng = most significant bit
+    And(a=out[15], b=true, out=ng);
+}
